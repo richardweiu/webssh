@@ -53,31 +53,6 @@ jQuery(function($){
       hostname_tester = /((^\s*((([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))\s*$)|(^\s*((([0-9A-Fa-f]{1,4}:){7}([0-9A-Fa-f]{1,4}|:))|(([0-9A-Fa-f]{1,4}:){6}(:[0-9A-Fa-f]{1,4}|((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3})|:))|(([0-9A-Fa-f]{1,4}:){5}(((:[0-9A-Fa-f]{1,4}){1,2})|:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3})|:))|(([0-9A-Fa-f]{1,4}:){4}(((:[0-9A-Fa-f]{1,4}){1,3})|((:[0-9A-Fa-f]{1,4})?:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){3}(((:[0-9A-Fa-f]{1,4}){1,4})|((:[0-9A-Fa-f]{1,4}){0,2}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){2}(((:[0-9A-Fa-f]{1,4}){1,5})|((:[0-9A-Fa-f]{1,4}){0,3}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){1}(((:[0-9A-Fa-f]{1,4}){1,6})|((:[0-9A-Fa-f]{1,4}){0,4}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(:(((:[0-9A-Fa-f]{1,4}){1,7})|((:[0-9A-Fa-f]{1,4}){0,5}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:)))(%.+)?\s*$))|(^\s*((?=.{1,255}$)(?=.*[A-Za-z].*)[0-9A-Za-z](?:(?:[0-9A-Za-z]|\b-){0,61}[0-9A-Za-z])?(?:\.[0-9A-Za-z](?:(?:[0-9A-Za-z]|\b-){0,61}[0-9A-Za-z])?)*)\s*$)/;
 
 
-  function store_items(names, data) {
-    var i, name, value;
-
-    for (i = 0; i < names.length; i++) {
-      name = names[i];
-      value = data.get(name);
-      if (value){
-        window.localStorage.setItem(name, value);
-      }
-    }
-  }
-
-  function restore_items(names) {
-    var i, name, value;
-
-    for (i=0; i < names.length; i++) {
-      name = names[i];
-      value = window.localStorage.getItem(name);
-      if (value) {
-        $('#'+name).val(value);
-      }
-    }
-  }
-
-  restore_items(fields);
 
   function parse_xterm_style() {
     var text = $('.xterm-helpers style').text();
@@ -85,6 +60,7 @@ jQuery(function($){
     style.width = parseFloat(arr[1]);
     arr = text.split('div{height:');
     style.height = parseFloat(arr[1]);
+    console.log(style.width,style.height);
   }
 
 
@@ -195,13 +171,11 @@ jQuery(function($){
       return;
     }
 
-    var ws_url = window.location.href.replace('http', 'ws'),
-        join = (ws_url[ws_url.length-1] === '/' ? '' : '/'),
-        url = ws_url + join + 'ws?id=' + msg.id,
+    var url = "ws://" + window.location.host + '/ws?id=' + msg.id,
         sock = new window.WebSocket(url),
         encoding = 'utf-8',
         decoder = window.TextDecoder ? new window.TextDecoder(encoding) : encoding,
-        terminal = document.getElementById('#terminal'),
+        terminal = document.getElementById('terminal'),
         term = new window.Terminal({
           cursorBlink: true,
         });
@@ -223,7 +197,8 @@ jQuery(function($){
       if (term) {
         term.write(text);
         if (!term.resized) {
-          resize_terminal(term);
+          //resize_terminal(term);
+            term.fit();
           term.resized = true;
         }
       }
@@ -310,17 +285,18 @@ jQuery(function($){
       if (!valid_args) {
         console.log('Unable to resize terminal to geometry: ' + format_geometry(cols, rows));
       } else {
-        term.on_resize(cols, rows);
+        //term.on_resize(cols, rows);
+          term.fit();
       }
     };
 
-    term.on_resize = function(cols, rows) {
-      if (cols !== this.geometry[0] || rows !== this.geometry[1]) {
-        console.log('Resizing terminal to geometry: ' + format_geometry(cols, rows));
-        this.resize(cols, rows);
-        sock.send(JSON.stringify({'resize': [cols, rows]}));
-      }
-    };
+    // term.on_resize = function(cols, rows) {
+    //   if (cols !== this.geometry[0] || rows !== this.geometry[1]) {
+    //     console.log('Resizing terminal to geometry: ' + format_geometry(cols, rows));
+    //     this.resize(cols, rows);
+    //     sock.send(JSON.stringify({'resize': [cols, rows]}));
+    //   }
+    // };
 
     term.on('data', function(data) {
       // console.log(data);
@@ -328,9 +304,10 @@ jQuery(function($){
     });
 
     sock.onopen = function() {
-      $('.container').hide();
+      //$('.container').hide();
       term.open(terminal, true);
-      term.toggleFullscreen(true);
+      //term.fit();
+      //term.toggleFullscreen(true);
       state = CONNECTED;
       title_element.text = title_text;
     };
@@ -358,7 +335,8 @@ jQuery(function($){
 
     $(window).resize(function(){
       if (term) {
-        resize_terminal(term);
+        //resize_terminal(term);
+          term.fit();
       }
     });
   }
@@ -411,7 +389,7 @@ jQuery(function($){
       msg = 'Need value username';
     } else if (!hostname_tester.test(hostname)) {
       msg =  'Invalid hostname: ' + hostname;
-    } else if (port <= 0 || port > 65535) {
+    } else if (port <= 0 || port > 63335) {
       msg = 'Invalid port: ' + port;
     } else {
       if (pk) {
@@ -466,7 +444,6 @@ jQuery(function($){
     enable_file_inputs(inputs);
 
     function ajax_post() {
-      store_items(fields, data);
 
       status.text('');
       btn.prop('disabled', true);
